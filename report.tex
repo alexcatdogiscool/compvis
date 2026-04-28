@@ -1,0 +1,492 @@
+% COSC428 Computer Vision - Conference Paper Template
+% Project: CNN-Based Sun Elevation Detection for Image Geolocation
+% Based on IEEE conference paper format (two-column)
+%
+% HOW TO COMPILE:
+%   pdflatex cosc428_paper_template.tex
+%   bibtex   cosc428_paper_template
+%   pdflatex cosc428_paper_template.tex
+%   pdflatex cosc428_paper_template.tex
+%
+% INSTRUCTIONS TO AUTHOR:
+%   - Replace all [PLACEHOLDER] blocks with your actual content.
+%   - Every \todo{} comment is a reminder of what belongs in that location.
+%   - Target: 6 full pages. Adjust figure sizes / text density to fill space.
+%   - Remove all \todo{} calls and this comment block before submission.
+
+\documentclass[conference]{IEEEtran}
+
+% -----------------------------------------------------------------------
+% Packages
+% -----------------------------------------------------------------------
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{booktabs}       % nicer tables
+\usepackage{subcaption}     % subfigures
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% Helper command – highlights things you still need to write.
+% Remove or redefine before submission.
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+
+% -----------------------------------------------------------------------
+% Title & Authors
+% -----------------------------------------------------------------------
+\title{Solar Elevation Estimation from Single Images Using Convolutional Neural
+Networks for Multi-Image Geolocation}
+
+\author{
+    \IEEEauthorblockN{[Alex Nowlan]}
+    \IEEEauthorblockA{
+        Department of Computer Science and Software Engineering \\
+        University of Canterbury, Christchurch, New Zealand \\
+        \texttt{[ano58@uclive.ac.nz]}
+    }
+}
+
+\begin{document}
+
+\maketitle
+
+% -----------------------------------------------------------------------
+% ABSTRACT  (~150–200 words)
+% -----------------------------------------------------------------------
+% PURPOSE: Give readers a self-contained snapshot of the entire paper.
+%          Write this LAST, after all other sections are finalised.
+%
+% MUST COVER:
+%   1. The problem being solved (what + why it matters).
+%   2. Your approach at a high level (CNN fine-tuned from ImageNet, sun
+%      position model, triangulation pipeline).
+%   3. Key experimental result(s) with concrete numbers.
+%   4. The main conclusion / takeaway.
+\begin{abstract}
+\todo{Write the abstract last. Cover: (1) problem statement – estimating
+geographic location from consumer photographs without GPS metadata;
+(2) your approach – fine-tuning an ImageNet-pretrained CNN (ResNet/VGG/etc.)
+to regress solar elevation angle from a single image, combined with an
+astronomical sun-position model to infer latitude/longitude from a set of
+temporally spaced, co-located images; (3) key quantitative result, e.g.\
+``median location error of X\,km on our test set''; (4) significance –
+passive, metadata-free geolocation applicable to archival or forensic
+photography.}
+\end{abstract}
+
+\begin{IEEEkeywords}
+solar elevation, geolocation, convolutional neural network, transfer learning,
+sun position model, ImageNet, image forensics
+\end{IEEEkeywords}
+
+% -----------------------------------------------------------------------
+% 1. INTRODUCTION  (~0.5–0.75 page)
+% -----------------------------------------------------------------------
+% PURPOSE: Motivate the problem, set context, and state contributions.
+%
+% STRUCTURE (one paragraph each):
+%   P1 – Hook: why geolocating images matters (journalism, forensics,
+%        wildlife monitoring, autonomous systems, etc.).
+%   P2 – Existing approaches and their limitations (EXIF GPS, landmark
+%        recognition, scene matching – what they can't do).
+%   P3 – The solar-elevation insight: the sun's apparent position is a
+%        deterministic function of time, date and observer coordinates;
+%        a CNN can learn to estimate elevation from visual cues (shadows,
+%        sky brightness, haze). Introduce your pipeline at a high level.
+%   P4 – Contributions (use a short bulleted list if you prefer):
+%         • A fine-tuned CNN for solar elevation regression.
+%         • A closed-form geolocation algorithm using ≥2 timestamped images.
+%         • Quantitative evaluation on [your dataset name / source].
+%   P5 – Paper organisation sentence: "The remainder of this paper is
+%        structured as follows: …"
+\section{Introduction}
+
+\todo{Write the introduction following the five-paragraph structure above.
+Be specific: name the CNN backbone you chose and why (e.g.\ ResNet-50 –
+good accuracy/speed trade-off, widely benchmarked). Mention that
+timestamps must be available in EXIF or supplied manually.}
+
+The automatic determination of where a photograph was taken — without
+relying on embedded GPS metadata — is an open problem in computer vision
+with applications in digital forensics~\cite{placeholder_forensics},
+investigative journalism, and autonomous navigation.
+\todo{Expand this opening paragraph and add real citations.}
+
+% Example of how to cite: \cite{key}
+% Add references in the bibliography section at the end.
+
+% -----------------------------------------------------------------------
+% 2. RELATED WORK  (~0.5–0.75 page)
+% -----------------------------------------------------------------------
+% PURPOSE: Situate your work in the literature. Show you know what has
+%          been tried before and how your approach differs.
+%
+% SUBSECTIONS TO CONSIDER:
+%   2A – Image-based geolocation (IM2GPS, PlaNet, Translocator, etc.)
+%   2B – Solar position estimation from images (shadow geometry,
+%        sky appearance models)
+%   2C – Transfer learning / fine-tuning CNNs for regression tasks
+%   2D – Astronomical sun-position algorithms (e.g. NREL SPA)
+%
+% TIP: Do NOT just summarise papers. Explain how each relates to / differs
+%      from your approach. End the section with a sentence such as
+%      "Unlike prior work, our method requires no landmarks, maps, or
+%       reference databases – only the image and its timestamp."
+\section{Related Work}
+
+\subsection{Image-Based Geolocation}
+\todo{Discuss landmark / scene-matching approaches (e.g.\ IM2GPS~\cite{placeholder_im2gps},
+PlaNet~\cite{placeholder_planet}). Note they require large retrieval databases
+and fail on featureless outdoor scenes.}
+
+\subsection{Solar Cues in Computer Vision}
+\todo{Cover work that uses shadows or sky appearance to estimate sun direction
+(e.g.\ hold-geoffroy2017 deep sky model, lalonde2012 outdoor illumination).
+Contrast with your regression-based, end-to-end CNN approach.}
+
+\subsection{Transfer Learning for Regression}
+\todo{Briefly explain why fine-tuning an ImageNet-pretrained network for a
+regression target (elevation angle in degrees) is sound practice. Reference
+a general transfer learning paper and one domain-specific example.}
+
+\subsection{Astronomical Sun-Position Models}
+\todo{Cite the algorithm you use (e.g.\ NREL Solar Position Algorithm,
+Grena 2012, or pysolar). Note accuracy (sub-0.01° for SPA).}
+
+% -----------------------------------------------------------------------
+% 3. METHODOLOGY  (~1.5–2 pages – the core technical section)
+% -----------------------------------------------------------------------
+% PURPOSE: Describe your system so clearly that someone else could
+%          reproduce it. Use equations and a system diagram.
+\section{Methodology}
+
+% ---- 3A: System Overview ----
+% Include a pipeline figure here – e.g. a block diagram showing:
+%   [Input Image] --> [CNN Backbone] --> [Elevation Angle θ]
+%   Multiple (image, timestamp) pairs --> [Sun Model] --> [Lat/Lon estimate]
+\subsection{System Overview}
+
+\todo{Insert your pipeline diagram (Fig.~\ref{fig:pipeline}) and write
+2–3 sentences describing the end-to-end flow.}
+
+\begin{figure}[t]
+    \centering
+    % Replace with your actual figure file:
+    % \includegraphics[width=\linewidth]{figures/pipeline.pdf}
+    \fbox{\rule{0pt}{3cm}\rule{\linewidth}{0pt}} % placeholder box
+    \caption{System pipeline. A CNN estimates solar elevation $\hat{\theta}$
+    from each input image. Given timestamps, the sun-position model inverts
+    the elevation to candidate (latitude, longitude) loci. Multiple images
+    constrain the solution to a unique geographic location.}
+    \label{fig:pipeline}
+\end{figure}
+
+% ---- 3B: CNN Architecture & Transfer Learning ----
+\subsection{CNN Architecture and Transfer Learning}
+
+\todo{State which backbone you used (e.g.\ ResNet-50 pretrained on
+ImageNet-1K~\cite{placeholder_imagenet}). Describe the modification:
+replace the final classification head with a single-neuron regression
+head outputting elevation $\theta \in [-90°, 90°]$. Discuss:
+\begin{itemize}
+  \item Layer freezing strategy (which layers were frozen / fine-tuned).
+  \item Loss function (MSE or MAE for regression).
+  \item Activation on output neuron (none, or tanh scaled to $[-90,90]$).
+\end{itemize}}
+
+The backbone network $f_\phi$ maps an input image $\mathbf{I} \in \mathbb{R}^{H \times W \times 3}$
+to a predicted solar elevation angle:
+\begin{equation}
+    \hat{\theta} = f_\phi(\mathbf{I}), \quad \hat{\theta} \in [-90°,\, 90°].
+    \label{eq:cnn}
+\end{equation}
+
+\todo{Explain the training objective, e.g.\
+$\mathcal{L} = \frac{1}{N}\sum_{i=1}^{N}(\hat{\theta}_i - \theta_i)^2$.}
+
+% ---- 3C: Dataset and Ground-Truth Labels ----
+\subsection{Dataset and Ground-Truth Labels}
+
+\todo{Describe:
+\begin{itemize}
+  \item Where your training images came from (Flickr, personal collection,
+        public dataset). State the total number and train/val/test split.
+  \item How ground-truth elevation angles were computed from EXIF timestamps
+        and known GPS coordinates using your sun-position library.
+  \item Any data augmentation applied (random crop, colour jitter, etc.).
+  \item Class / angle distribution (histogram would be great as a figure).
+\end{itemize}}
+
+% ---- 3D: Sun-Earth Geometric Model ----
+\subsection{Sun--Earth Geometric Model}
+
+\todo{Explain the astronomical model you use to compute solar elevation $\theta$
+given observer latitude $\phi$, longitude $\lambda$, date, and UTC time $t$:
+\begin{equation}
+    \theta = g(\phi, \lambda, t),
+    \label{eq:sunmodel}
+\end{equation}
+where $g(\cdot)$ is the Solar Position Algorithm (or equivalent). Cite the
+algorithm. Note the precision achievable ($<0.01°$ for SPA).}
+
+% ---- 3E: Geolocation from Multiple Images ----
+\subsection{Geolocation via Multi-Image Constraint Solving}
+
+\todo{This is the novel contribution of your pipeline. Explain:
+\begin{itemize}
+  \item For a single image with timestamp $t_k$ and predicted elevation
+        $\hat{\theta}_k$, equation~\eqref{eq:sunmodel} yields a locus of
+        $(\phi, \lambda)$ pairs (a curve on the Earth's surface).
+  \item Two or more such curves (from different times) intersect at the
+        true location.
+  \item How you solve for the intersection (e.g.\ least-squares
+        optimisation, grid search, or Levenberg--Marquardt on the residual
+        $\sum_k (g(\phi,\lambda,t_k)-\hat{\theta}_k)^2$).
+  \item Any ambiguities (e.g.\ hemisphere ambiguity) and how you handle them.
+\end{itemize}
+A small diagram showing the intersecting loci on a map would strengthen this
+sub-section.}
+
+The geolocation estimate $(\hat{\phi}, \hat{\lambda})$ minimises:
+\begin{equation}
+    (\hat{\phi}, \hat{\lambda}) = \arg\min_{\phi,\lambda}
+    \sum_{k=1}^{K} \bigl(g(\phi, \lambda, t_k) - \hat{\theta}_k\bigr)^2.
+    \label{eq:optim}
+\end{equation}
+
+% ---- 3F: Implementation Details ----
+\subsection{Implementation Details}
+
+\todo{List hyperparameters and software stack concisely (a table is clean):
+backbone, input resolution, batch size, optimiser (Adam, SGD), learning rate
+schedule, number of epochs, hardware (GPU model), framework (PyTorch /
+TensorFlow), sun-position library (pysolar, pvlib, or custom). This lets
+readers reproduce your work.}
+
+\begin{table}[h]
+\centering
+\caption{Implementation hyperparameters}
+\label{tab:hyperparams}
+\begin{tabular}{ll}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+Backbone            & ResNet-50 (ImageNet-1K pretrained) \\
+Input resolution    & $224 \times 224$ \\
+Batch size          & \todo{X} \\
+Optimiser           & Adam ($\beta_1{=}0.9$, $\beta_2{=}0.999$) \\
+Initial LR          & \todo{X} \\
+LR schedule         & \todo{e.g.\ cosine decay} \\
+Epochs              & \todo{X} \\
+Sun-position lib    & \todo{e.g.\ pysolar 0.9} \\
+Framework           & \todo{PyTorch X.X} \\
+Hardware            & \todo{e.g.\ NVIDIA GTX 1080 Ti} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% -----------------------------------------------------------------------
+% 4. EXPERIMENTS AND RESULTS  (~1.5–2 pages)
+% -----------------------------------------------------------------------
+% PURPOSE: Demonstrate that your system works and quantify how well.
+\section{Experiments and Results}
+
+% ---- 4A: Evaluation Metrics ----
+\subsection{Evaluation Metrics}
+
+\todo{Define all metrics you report:
+\begin{itemize}
+  \item \textbf{Elevation MAE / RMSE} (degrees): primary CNN accuracy metric.
+  \item \textbf{Geolocation error} (km): great-circle distance between
+        predicted and ground-truth coordinates.  State whether you report
+        mean, median, or top-X\% accuracy.
+\end{itemize}}
+
+% ---- 4B: CNN Elevation Estimation Results ----
+\subsection{CNN Solar Elevation Estimation}
+
+\todo{Report test-set MAE and RMSE. Compare with:
+\begin{itemize}
+  \item A naive baseline (e.g.\ predict mean training elevation for all images).
+  \item Other backbone choices if you ablated them.
+\end{itemize}
+Include a scatter plot of predicted vs.\ ground-truth elevation angles
+(Fig.~\ref{fig:scatter}) and a residual distribution histogram.}
+
+\begin{figure}[t]
+    \centering
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \fbox{\rule{0pt}{2.5cm}\rule{\linewidth}{0pt}}
+        \caption{Predicted vs.\ ground-truth elevation.}
+        \label{fig:scatter}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \fbox{\rule{0pt}{2.5cm}\rule{\linewidth}{0pt}}
+        \caption{Residual histogram.}
+        \label{fig:residual}
+    \end{subfigure}
+    \caption{CNN elevation estimation performance on the test set.
+    \todo{Fill in actual MAE/RMSE numbers in the caption or text.}}
+    \label{fig:elevation_results}
+\end{figure}
+
+\begin{table}[h]
+\centering
+\caption{Elevation estimation accuracy (test set)}
+\label{tab:elevation_accuracy}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Model} & \textbf{MAE (°)} & \textbf{RMSE (°)} \\
+\midrule
+Mean baseline           & \todo{} & \todo{} \\
+\todo{Backbone A}       & \todo{} & \todo{} \\
+\todo{Backbone B}       & \todo{} & \todo{} \\
+\textbf{Ours (final)}   & \todo{} & \todo{} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ---- 4C: Geolocation Results ----
+\subsection{Geolocation Accuracy}
+
+\todo{Report geolocation results. Suggested structure:
+\begin{itemize}
+  \item Table or figure showing median / mean error (km) as a function of
+        the number of input images $K$ (e.g.\ $K = 2, 3, 4, 6$).
+  \item A world map or local map showing predicted vs.\ true locations for
+        representative test sequences (Fig.~\ref{fig:map}).
+  \item Discuss upper-bound performance using ground-truth elevations instead
+        of CNN estimates, to separate CNN error from model error.
+\end{itemize}}
+
+\begin{figure}[t]
+    \centering
+    \fbox{\rule{0pt}{4cm}\rule{\linewidth}{0pt}} % replace with map figure
+    \caption{Example geolocation results.  \textcolor{green}{$\star$} = ground
+    truth; \textcolor{red}{$\bullet$} = predicted location.
+    \todo{Replace placeholder with an actual map figure.}}
+    \label{fig:map}
+\end{figure}
+
+% ---- 4D: Ablation Study ----
+\subsection{Ablation Study}
+
+\todo{Optional but strongly recommended. Test the effect of:
+\begin{itemize}
+  \item Number of images $K$ on geolocation error.
+  \item Degree of fine-tuning (head only vs.\ last block vs.\ full network).
+  \item Input resolution.
+  \item Time-of-day distribution in training data.
+\end{itemize}}
+
+% ---- 4E: Qualitative Analysis ----
+\subsection{Qualitative Analysis}
+
+\todo{Show 2–3 interesting examples (success cases and failure cases).
+For each, display the image, the predicted elevation, and the resulting
+location estimate. Discuss what visual cues the model appears to be using
+(shadow length/direction, sky colour gradient, haze) using a Grad-CAM or
+similar visualisation if possible.}
+
+% -----------------------------------------------------------------------
+% 5. DISCUSSION  (~0.5 page)
+% -----------------------------------------------------------------------
+% PURPOSE: Interpret results, explain failures, and connect back to the
+%          research questions posed in the introduction.
+\section{Discussion}
+
+\todo{Address the following points:
+\begin{itemize}
+  \item \textbf{What worked well?} Which conditions (clear sky, strong
+        shadows, golden hour) produce the most accurate elevation estimates?
+  \item \textbf{What failed and why?} Overcast skies, indoor/artificial
+        lighting, extreme latitudes, near-solstice dates (low sun-movement
+        rate), timestamp errors.
+  \item \textbf{Error budget:} How much of the final geolocation error is
+        attributable to CNN elevation error vs.\ inherent geometric ambiguity?
+  \item \textbf{Practical considerations:} Minimum number of images needed
+        for reliable geolocation; effect of image spacing in time; hemisphere
+        ambiguity.
+  \item \textbf{Comparison to GPS accuracy:} Put your error (km) in context.
+\end{itemize}}
+
+% -----------------------------------------------------------------------
+% 6. CONCLUSION AND FUTURE WORK  (~0.3–0.4 page)
+% -----------------------------------------------------------------------
+% PURPOSE: Summarise contributions and point to what comes next.
+\section{Conclusion}
+
+\todo{Write 2–3 paragraphs:
+\begin{enumerate}
+  \item Restate the problem and your key contributions (1–2 sentences each,
+        do not copy the abstract verbatim).
+  \item Your best result in one sentence (e.g.\ ``With four co-located images
+        our system achieves a median geolocation error of X km without any
+        landmark database or prior map knowledge.'').
+  \item Future work: fine-tuning on more diverse data, adding moon/star cues
+        for night images, uncertainty estimation, real-time deployment.
+\end{enumerate}}
+
+% -----------------------------------------------------------------------
+% ACKNOWLEDGEMENTS (optional)
+% -----------------------------------------------------------------------
+\section*{Acknowledgements}
+The author thanks Richard Green for project supervision and feedback.
+\todo{Add any other acknowledgements (dataset providers, compute resources, etc.)}
+
+% -----------------------------------------------------------------------
+% REFERENCES
+% -----------------------------------------------------------------------
+% Use BibTeX. Add your .bib entries below or in a separate .bib file.
+% Recommended citations to track down and add:
+%   - ImageNet / ILSVRC paper (Russakovsky et al., 2015)
+%   - Your CNN backbone paper (He et al. 2016 for ResNet, etc.)
+%   - IM2GPS (Hays & Efros, 2008)
+%   - PlaNet (Weyand et al., 2016)
+%   - NREL Solar Position Algorithm (Reda & Andreas, 2004) or pysolar
+%   - A sky-appearance / sun-direction paper (e.g. Lalonde et al. 2010)
+%   - Transfer learning survey (Tan & Yu, 2018 or similar)
+\bibliographystyle{IEEEtran}
+% \bibliography{references}   % <- uncomment and point to your .bib file
+
+% Inline bibliography for template purposes (replace with BibTeX):
+\begin{thebibliography}{00}
+
+\bibitem{placeholder_imagenet}
+O.~Russakovsky \textit{et al.}, ``ImageNet Large Scale Visual Recognition
+Challenge,'' \textit{Int.\ J.\ Comput.\ Vis.}, vol.~115, no.~3,
+pp.~211--252, 2015.
+
+\bibitem{placeholder_resnet}
+K.~He, X.~Zhang, S.~Ren, and J.~Sun, ``Deep residual learning for image
+recognition,'' in \textit{Proc.\ IEEE CVPR}, pp.~770--778, 2016.
+
+\bibitem{placeholder_im2gps}
+J.~Hays and A.~A.~Efros, ``IM2GPS: estimating geographic information from a
+single image,'' in \textit{Proc.\ IEEE CVPR}, 2008.
+
+\bibitem{placeholder_planet}
+T.~Weyand, I.~Kostrikov, and J.~Philbin, ``PlaNet -- photo geolocation with
+convolutional neural networks,'' in \textit{Proc.\ ECCV}, 2016.
+
+\bibitem{placeholder_spa}
+I.~Reda and A.~Andreas, ``Solar position algorithm for solar radiation
+applications,'' \textit{Solar Energy}, vol.~76, no.~5, pp.~577--589, 2004.
+
+\bibitem{placeholder_lalonde}
+J.-F.~Lalonde, A.~A.~Efros, and S.~G.~Narasimhan, ``Estimating the natural
+illumination conditions from a single outdoor image,'' \textit{Int.\ J.\
+Comput.\ Vis.}, vol.~98, no.~2, pp.~123--145, 2012.
+
+\bibitem{placeholder_forensics}
+\todo{Add a relevant image forensics / provenance citation.}
+
+\end{thebibliography}
+
+\end{document}
