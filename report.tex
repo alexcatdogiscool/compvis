@@ -169,17 +169,21 @@ Grena 2012, or pysolar). Note accuracy (sub-0.01° for SPA).}
 %   Multiple (image, timestamp) pairs --> [Sun Model] --> [Lat/Lon estimate]
 \subsection{System Overview}
 
-\todo{Insert your pipeline diagram (Fig.~\ref{fig:pipeline}) and write
-2–3 sentences describing the end-to-end flow.}
+The timestamp of an input image is used to calculate the subsolar-point (SP), the location on the globe where the sun is directly overhead for that time.
+A Convolutional Neural Network (CNN) is used to estimate the solar elevation of an image. Using the solar elevation of the sun in the scene,
+and the SP for the given image, a circle of possible locations can be derived for where the image must have been taken.
+Multiple candidate circles can be derived when given multiple images from the same location at different times of year.
+The intersection of these candidate sets can be taken to arrive at 2 unique points on the globe where the image must be taken from, mirrored acros the equator.
 
 \begin{figure}[t]
     \centering
     % Replace with your actual figure file:
     % \includegraphics[width=\linewidth]{figures/pipeline.pdf}
-    \fbox{\rule{0pt}{3cm}\rule{\linewidth}{0pt}} % placeholder box
+    %\fbox{\rule{0pt}{3cm}\rule{\linewidth}{0pt}} % placeholder box
+    \includegraphics[width=\linewidth]{images/pipeline.png}
     \caption{System pipeline. A CNN estimates solar elevation $\hat{\theta}$
     from each input image. Given timestamps, the sun-position model inverts
-    the elevation to candidate (latitude, longitude) loci. Multiple images
+    the elevation to candidate (latitude, longitude) sets. Multiple images
     constrain the solution to a unique geographic location.}
     \label{fig:pipeline}
 \end{figure}
@@ -187,25 +191,37 @@ Grena 2012, or pysolar). Note accuracy (sub-0.01° for SPA).}
 % ---- 3B: CNN Architecture & Transfer Learning ----
 \subsection{CNN Architecture and Transfer Learning}
 
-\todo{State which backbone you used (e.g.\ ResNet-50 pretrained on
-ImageNet-1K~\cite{placeholder_imagenet}). Describe the modification:
-replace the final classification head with a single-neuron regression
-head outputting elevation $\theta \in [-90°, 90°]$. Discuss:
-\begin{itemize}
-  \item Layer freezing strategy (which layers were frozen / fine-tuned).
-  \item Loss function (MSE or MAE for regression).
-  \item Activation on output neuron (none, or tanh scaled to $[-90,90]$).
-\end{itemize}}
+The image classifier model, EfficientNet [cite], was used as a backbone architecture for determining solar elevation
+from images. A pre-trained version of this CNN for the purpose of image classification using the ImageNet-1K dataset was used,
+as important feature recognition methods such as edge detection and shadow detection are backed into the pre-trained weights. These fetures are
+important when determining solar elevation.
+
+The origional classifier head was replaced with a feature head of 32 bins.
 
 The backbone network $f_\phi$ maps an input image $\mathbf{I} \in \mathbb{R}^{H \times W \times 3}$
-to a predicted solar elevation angle:
+to one of 32 bins, each representing $\frac{90}{32}=2.81$ degrees for solar elevation:
 \begin{equation}
-    \hat{\theta} = f_\phi(\mathbf{I}), \quad \hat{\theta} \in [-90°,\, 90°].
+    \hat{\beta} = f_\phi(\mathbf{I}), \quad \hat{\beta} \in [0,\, 32].
     \label{eq:cnn}
 \end{equation}
 
 \todo{Explain the training objective, e.g.\
 $\mathcal{L} = \frac{1}{N}\sum_{i=1}^{N}(\hat{\theta}_i - \theta_i)^2$.}
+
+During training, Loss is calculated using KL Divergence, which measures how different two probability distributions are.
+The Loss function can be defined as:
+\begin{equation}
+    Loss = \Sigma(P(target) * log(\frac{P(target)}{Q(predicted)}))
+\end{equation}
+
+During inference, predicted solar elevation can be extracted from the bins by taking the expected value of the distribution as follows:
+\begin{equation}
+    \hat{\theta} = \Sigma(softmax(logits)[i] * binCenter[i]).
+\end{equation}
+
+This enables the model to be able to predict a smooth output for elevation rather than 32 discreat bins.
+
+A full training overview is shown in table 1.
 
 % ---- 3C: Dataset and Ground-Truth Labels ----
 \subsection{Dataset and Ground-Truth Labels}
@@ -219,6 +235,28 @@ $\mathcal{L} = \frac{1}{N}\sum_{i=1}^{N}(\hat{\theta}_i - \theta_i)^2$.}
   \item Any data augmentation applied (random crop, colour jitter, etc.).
   \item Class / angle distribution (histogram would be great as a figure).
 \end{itemize}}
+
+A dataset consisting of 6467 equirectangular panorama images taken from the Google street view API was manually labels for solar elevation.
+The labelling split the set into two categories:
+\begin{itemize}
+    \item No Visible Sun
+    \item Visible sun + manually labeled elevation
+\end{itemize}
+This resulted in 2404 clean images with ground truth labels.
+
+Each panorama was used to create 12 training images with the following randomized parameters:
+\begin{itemize}
+    \item Feild of View. $FOV \in [50,\, 90]$.
+    \item Yaw $\in [0,\, 360]$ degrees.
+    \item Pitch $\in [-30,\, 30]$ degrees from horizon line.
+\end{itemize}
+The final training set consisted of 28,848 images labeled with solar elevation.
+
+1,000 of these images were kept out of traing and used for evaluation resulting in a total training
+set size of 27,848 images.
+
+The ground truth for the training set is converted from degrees to a gausian with sigma=2.5 centered at the closest bin.
+This results in a soft label for each image where the probability mass is spread across roughly $\pm5$ degrees of the true elevation.
 
 % ---- 3D: Sun-Earth Geometric Model ----
 \subsection{Sun--Earth Geometric Model}
@@ -274,16 +312,12 @@ readers reproduce your work.}
 \toprule
 \textbf{Parameter} & \textbf{Value} \\
 \midrule
-Backbone            & ResNet-50 (ImageNet-1K pretrained) \\
+Backbone            & EfficientNet (ImageNet-1K pretrained) \\
 Input resolution    & $224 \times 224$ \\
-Batch size          & \todo{X} \\
-Optimiser           & Adam ($\beta_1{=}0.9$, $\beta_2{=}0.999$) \\
-Initial LR          & \todo{X} \\
-LR schedule         & \todo{e.g.\ cosine decay} \\
-Epochs              & \todo{X} \\
-Sun-position lib    & \todo{e.g.\ pysolar 0.9} \\
-Framework           & \todo{PyTorch X.X} \\
-Hardware            & \todo{e.g.\ NVIDIA GTX 1080 Ti} \\
+Batch size          & 16 \\
+Optimiser           & Adam ($lr=1e-4$) \\
+Epochs              & 30 \\
+Hardware            & NVIDIA GeForce RTX 4060 Ti \\
 \bottomrule
 \end{tabular}
 \end{table}
