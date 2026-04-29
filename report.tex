@@ -270,6 +270,24 @@ given observer latitude $\phi$, longitude $\lambda$, date, and UTC time $t$:
 where $g(\cdot)$ is the Solar Position Algorithm (or equivalent). Cite the
 algorithm. Note the precision achievable ($<0.01°$ for SPA).}
 
+The elevation of the sun, paired with an accurate timestamp of when such elevation is measured provides a narrow search range for the location
+of where such an elevation was measured.
+
+The subsolar point can be easilly calculated for a given timestamp. The declination of the sun $\delta$ can be aproximated by:
+\begin{equation}
+    \delta = -4092797cos(\frac{2\pi}{365}(M+10)).
+\end{equation}
+Where M denotes the day of the year. The constant 0.4092797 represents the maximum declination angle of the sun in radians, namely,
+23.45 degrees.
+
+Next, for a time $\tau$ in hours rooted at UTC+0, longitude of the sun is calculated as:
+\begin{equation}
+    \lambda = \frac{360\tau}{24}
+\end{equation}
+
+Next, observe that for a given measured sun elevation $e$, and sun SP $(\delta, \lambda)$, the only points on the globe whos sun elevation is measured
+as $e$ form a circle around the SP. this circle represents all possible locations in which such an elevation $e$ could be measured.
+
 % ---- 3E: Geolocation from Multiple Images ----
 \subsection{Geolocation via Multi-Image Constraint Solving}
 
@@ -287,6 +305,18 @@ algorithm. Note the precision achievable ($<0.01°$ for SPA).}
 \end{itemize}
 A small diagram showing the intersecting loci on a map would strengthen this
 sub-section.}
+
+We have seen we can find a circle of possible locations for where a measured elevation can occur. If we then take multiple easurements from 
+multiple times throughout the year in the same area, we can obtain multiple of these sets of possible locations. The intersection
+of these curves can be taken to find two unique points on the globe where the set of measurements must have come from.
+
+Two unique points is as good as this method can do. These 2 points represent reflections around the equator.
+Narrowing the potential points further is trivial in many cases. If one of the points is over the ocean, and the image we are trying to geolocate
+is on dry land, we can discard it, for example.
+
+In many cases we can contrain our potential location set by timezone. If the timestamp of the images includes a timezone such as NZST,
+only the points of the circles within that timezone need to be considered. Many times this rules out one of the mirrored points as it
+does not fall within the target timezone.
 
 The geolocation estimate $(\hat{\phi}, \hat{\lambda})$ minimises:
 \begin{equation}
@@ -339,6 +369,11 @@ Hardware            & NVIDIA GeForce RTX 4060 Ti \\
         mean, median, or top-X\% accuracy.
 \end{itemize}}
 
+We evalute the CNN on a evaluation set of 1,000 images with ground truth labels.
+The evaluation metric is measuerd as MAE in degrees.
+
+We also evalute the geolocation pipeline using the distance between prediction and ground truth in Killometers.
+
 % ---- 4B: CNN Elevation Estimation Results ----
 \subsection{CNN Solar Elevation Estimation}
 
@@ -350,24 +385,31 @@ Hardware            & NVIDIA GeForce RTX 4060 Ti \\
 Include a scatter plot of predicted vs.\ ground-truth elevation angles
 (Fig.~\ref{fig:scatter}) and a residual distribution histogram.}
 
+We evaluated the models predicted elevation with ground truth elevation (Fig.~\ref{fig:scatter}) and see a linear result throught evevation. 
+There is minimal bias at high or low angles. This shows that the model has successfully generalized.
+
+We also plot a residual histogram of error (pred - GT) (Fig.~\ref{fig:residual}). There is a minimal positave bias of 0.07 degrees with a very tight spread.
+We see that 99.8\% of images fall within $\pm5$ degrees, and 98.3\% images fall within $\pm2$ degrees (Tab.~\ref{tab:elevation_accuracy}) of the true elevation.
+
+
 \begin{figure}[t]
     \centering
-    \begin{subfigure}[b]{0.48\linewidth}
-        \centering
-        \fbox{\rule{0pt}{2.5cm}\rule{\linewidth}{0pt}}
-        \caption{Predicted vs.\ ground-truth elevation.}
-        \label{fig:scatter}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[b]{0.48\linewidth}
-        \centering
-        \fbox{\rule{0pt}{2.5cm}\rule{\linewidth}{0pt}}
-        \caption{Residual histogram.}
-        \label{fig:residual}
-    \end{subfigure}
-    \caption{CNN elevation estimation performance on the test set.
-    \todo{Fill in actual MAE/RMSE numbers in the caption or text.}}
-    \label{fig:elevation_results}
+    % Replace with your actual figure file:
+    % \includegraphics[width=\linewidth]{figures/pipeline.pdf}
+    %\fbox{\rule{0pt}{3cm}\rule{\linewidth}{0pt}} % placeholder box
+    \includegraphics[width=\linewidth]{images/results/scatter.png}
+    \caption{Ground truth elevation vs.\ predicted elevation}
+    \label{fig:scatter}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    % Replace with your actual figure file:
+    % \includegraphics[width=\linewidth]{figures/pipeline.pdf}
+    %\fbox{\rule{0pt}{3cm}\rule{\linewidth}{0pt}} % placeholder box
+    \includegraphics[width=\linewidth]{images/results/residual_hist.png}
+    \caption{CNN elevation estimation performance on the test set.}
+    \label{fig:residual}
 \end{figure}
 
 \begin{table}[h]
@@ -376,12 +418,13 @@ Include a scatter plot of predicted vs.\ ground-truth elevation angles
 \label{tab:elevation_accuracy}
 \begin{tabular}{lcc}
 \toprule
-\textbf{Model} & \textbf{MAE (°)} & \textbf{RMSE (°)} \\
+\textbf{Metric} & \textbf{Result} \\
 \midrule
-Mean baseline           & \todo{} & \todo{} \\
-\todo{Backbone A}       & \todo{} & \todo{} \\
-\todo{Backbone B}       & \todo{} & \todo{} \\
-\textbf{Ours (final)}   & \todo{} & \todo{} \\
+MAE           & $0.511^{\circ}$ \\
+RMSE       & $0.753^{\circ}$ \\
+Mean bias       & $0.069^{\circ}$ \\
+Within $\pm2^{\circ}$       & 98.3\% \\
+Within $\pm5^{\circ}$       & 99.8\% \\
 \bottomrule
 \end{tabular}
 \end{table}
